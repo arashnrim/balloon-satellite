@@ -3,7 +3,6 @@
 
 XBee xbee = XBee();
 XBeeResponse response = XBeeResponse();
-// Creates reusable response objects for responses we expect to handle.
 ZBRxResponse rx = ZBRxResponse();
 ModemStatusResponse msr = ModemStatusResponse();
 
@@ -52,20 +51,33 @@ void loop() {
         // The receiver successfully receives data, but the sender does not receive an acknowledgement from the receiver.
         flashLed(errorLed, 2, 20);
       }
-        // Unpacks the payload data coming from the sender.
-        int first, second, third = rx.getData(0), rx.getData(1), rx.getData(2);
-        float HIH4030_Value = (first * 100) + (second * 10) + third;
+        // Unpacks the payload data of the relative humidity coming from the sender.
+        int firstRH = rx.getData(0);
+        int secondRH = rx.getData(1);
+        int thirdRH = rx.getData(2);
+        float HIH4030_Value = (firstRH * 100) + (secondRH * 10) + thirdRH;
         float voltage = HIH4030_Value / 1023. * 5.0;
         float sensorRH = 161.0 * voltage / 5.0 - 25.8;
         // The temperature of the surroundings. Edit this to fit your surroundings.
-        float temperature = 24;
+        float temperatureRH = 24;
         // Calculates the true relative humidity percentage based on the temperature.
-        float trueRH = sensorRH / (1.0546 - 0.0026 * temperature);
-        Serial.println(trueRH);
+        float trueRH = sensorRH / (1.0546 - 0.0026 * temperatureRH);
+        Serial.print("Humidity: ");
+        Serial.print(trueRH);
+        Serial.println("%");
+
+        // Unpacks the payload data of the temperature coming from the sender.
+        int firstTMP = rx.getData(3);
+        int secondTMP = rx.getData(4);
+        float thirdTMP = rx.getData(5);
+        float fourthTMP = rx.getData(6);
+        float temperature = firstTMP * 10 + secondTMP + thirdTMP / 10 + fourthTMP / 100;
+        Serial.print("Temperature: ");
+        Serial.print(temperature);
+        Serial.println("°C");
 
     } else if (xbee.getResponse().getApiId() == MODEM_STATUS_RESPONSE) {
       xbee.getResponse().getModemStatusResponse(msr);
-      // The local XBee sends this response on certain events, like during association/dissociation.
 
       if (msr.getStatus() == ASSOCIATED) {
         flashLed(statusLed, 10, 10);
@@ -80,7 +92,7 @@ void loop() {
     }
   } else if (xbee.getResponse().isError()) {
     // An error occurred when the receiver is trying to read a response from the sender.
-    Serial.println("Error reading packet.  Error code: ");
+    Serial.println("Error reading packet. Error code: ");
     Serial.println(xbee.getResponse().getErrorCode());
   }
 }
