@@ -72,12 +72,14 @@ void loop() {
 
   // Reads the temperature data and stores it into the payload.
   float temperature = sensor0.readTempC();
-  Serial.println(temperature);
   int temp = temperature * 100;
   payload[3] = temp / 1000 % 10; 
   payload[4] = temp / 100 % 10;
   payload[5] = temp / 10 % 10; 
   payload[6] = temp % 10; 
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.println("°C");
 
   // Transmits the payload with the configuration set above.
   xbee.send(zbTx);
@@ -99,7 +101,7 @@ void loop() {
       }
     }
   } else if (xbee.getResponse().isError()) {
-    nss.print("Error reading packet.  Error code: ");
+    nss.print("Error reading packet. Error code: ");
     nss.println(xbee.getResponse().getErrorCode());
   } else {
     // The local XBee did not provide a timely TX Status Response; this is unexpected, so errorLed is lit.
