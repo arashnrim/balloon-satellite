@@ -26,3 +26,5 @@ jobs:
     
     - name: Compile Arduino files
       uses: ArminJo/arduino-test-compile@v2
+      with:
+        arduino-board-fqbn: arduino:avr:mega2560
