@@ -101,8 +101,8 @@ void loop() {
       }
     }
   } else if (xbee.getResponse().isError()) {
-    nss.print("Error reading packet. Error code: ");
-    nss.println(xbee.getResponse().getErrorCode());
+    Serial.print("Error reading packet. Error code: ");
+    Serial.println(xbee.getResponse().getErrorCode());
   } else {
     // The local XBee did not provide a timely TX Status Response; this is unexpected, so errorLed is lit.
     flashLed(errorLed, 2, 50);
