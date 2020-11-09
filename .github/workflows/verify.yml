@@ -1,0 +1,30 @@
+name: Verify Arduino files
+on: [ push ]
+  
+jobs:
+  build:
+    name: Verifying compilation of Arduino files
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v2
+    
+    - name: Checkout XBee library
+      uses: actions/checkout@v2
+      with:
+        repository: andrewrapp/xbee-arduino
+        ref: master
+        path: CustomLibrary_XBee
+    
+    - name: Checkout TMP-102 library
+      uses: actions/checkout@v2
+      with:
+        repository:  sparkfun/SparkFun_TMP102_Arduino_Library
+        ref: master
+        path: CustomLibrary_TMP
+    
+    - name: Compile Arduino files
+      uses: ArminJo/arduino-test-compile@v2
+      with:
+        arduino-board-fqbn: arduino:avr:mega
