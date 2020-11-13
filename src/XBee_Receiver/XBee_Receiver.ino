@@ -11,7 +11,6 @@ int errorLed = 13;
 int dataLed = 13;
 
 void flashLed(int pin, int times, int wait) {
-
   for (int i = 0; i < times; i++) {
     digitalWrite(pin, HIGH);
     delay(wait);
@@ -37,7 +36,6 @@ void setup() {
 
 // Continuously reads packets, looking for ZB Receive or Modem Status.
 void loop() {
-
   xbee.readPacket();
 
   if (xbee.getResponse().isAvailable()) {
@@ -59,7 +57,7 @@ void loop() {
         float voltage = HIH4030_Value / 1023. * 5.0;
         float sensorRH = 161.0 * voltage / 5.0 - 25.8;
         // The temperature of the surroundings. Edit this to fit your surroundings.
-        float temperatureRH = 24;
+        float temperatureRH = 30;
         // Calculates the true relative humidity percentage based on the temperature.
         float trueRH = sensorRH / (1.0546 - 0.0026 * temperatureRH);
         Serial.print("Humidity: ");
@@ -75,6 +73,18 @@ void loop() {
         Serial.print("Temperature: ");
         Serial.print(temperature);
         Serial.println("°C");
+
+        // Unpacks the payload data of the pressure coming from the sender.
+        // We chose kPa over Pa due to Arduino's 16-bit restriction on integers.
+        int firstPR = rx.getData(7);
+        int secondPR = rx.getData(8);
+        int thirdPR = rx.getData(9);
+        int pressure = firstPR * 100 + secondPR * 10 + thirdPR;
+        Serial.print("Pressure: ");
+        Serial.print(pressure);
+        Serial.println("kPa");
+
+        Serial.println();
 
     } else if (xbee.getResponse().getApiId() == MODEM_STATUS_RESPONSE) {
       xbee.getResponse().getModemStatusResponse(msr);
