@@ -14,6 +14,9 @@
 */
 
 #include <XBee.h>
+#include <Servo.h>
+#include <Adafruit_LSM9DS1.h>
+#include <Adafruit_Sensor.h> 
 #include <Wire.h> // Used to establied serial communication on the I2C bus
 #include <SparkFunTMP102.h> // Used to send and recieve specific information from our sensor
 #include <SPI.h>
@@ -22,8 +25,17 @@
 #define BMP_MISO (12)
 #define BMP_MOSI (11)
 #define BMP_CS   (10)
+Servo servo;
 Adafruit_BMP280 bmp;
+Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
+#define LSM9DS1_SCK A5
+#define LSM9DS1_MISO 12
+#define LSM9DS1_MOSI A4
+#define LSM9DS1_XGCS 6
+#define LSM9DS1_MCS 5
 
+
+int  pos = 0;
 const int ALERT_PIN = A3;
 TMP102 sensor0;
 
@@ -35,7 +47,7 @@ TMP102 sensor0;
 // create the XBee object
 XBee xbee = XBee();
 
-uint8_t payload[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint8_t payload[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
 
 // SH + SL Address of receiving XBee
 XBeeAddress64 addr64 = XBeeAddress64(0x13A200, 0x4194502C);
@@ -48,6 +60,26 @@ int humiditySensor = A0;
 
 int statusLed = 13;
 int errorLed = 13;
+
+void setupSensor()
+{
+  // 1.) Set the accelerometer range
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_8G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_16G);
+  
+  // 2.) Set the magnetometer sensitivity
+  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_8GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_12GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_16GAUSS);
+
+  // 3.) Setup the gyroscope
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
+}
 
 void flashLed(int pin, int times, int wait) {
 
@@ -74,6 +106,7 @@ void setup() {
   pinMode(errorLed, OUTPUT);
   Serial.begin(9600);
   Serial1.begin(9600);
+  servo.attach(53);
   xbee.setSerial(Serial1);
 
   if (!bmp.begin()) {
@@ -95,6 +128,23 @@ void setup() {
                   Adafruit_BMP280::FILTER_X16,      /* Filtering. */
                   Adafruit_BMP280::STANDBY_MS_500);
 
+  while (!Serial) {
+    delay(1); // will pause Zero, Leonardo, etc until serial console opens
+  }
+  
+  Serial.println("LSM9DS1 data read demo");
+  
+  // Try to initialise and warn if we couldn't detect the chip
+  if (!lsm.begin())
+  {
+    Serial.println("Oops ... unable to initialize the LSM9DS1. Check your wiring!");
+    while (1);
+  }
+  Serial.println("Found LSM9DS1 9DOF");
+
+  // helper to just set the default scaling we want, see above!
+  setupSensor();
+
 }
 
 void loop() {
@@ -105,12 +155,15 @@ void loop() {
   boolean alertPinState, alertRegisterState; 
   int i;
   int temp;
+
+  //Humidity
   int HIH4030_Value = analogRead(humiditySensor);
   payload[0] = HIH4030_Value / 100 % 10; 
   payload[1] = HIH4030_Value / 10 % 10;
   payload[2] = HIH4030_Value % 10;
   Serial.println(HIH4030_Value);
-  
+
+  //Temperature
   temperature = sensor0.readTempC();
   Serial.println(temperature);
   temp = temperature * 100;
@@ -118,14 +171,29 @@ void loop() {
   payload[4] = temp / 100 % 10;
   payload[5] = temp / 10 % 10; 
   payload[6] = temp % 10; 
-  
+
+  //Pressure
   pressure = ceil(ceil(bmp.readPressure())/1000);
   Serial.println(pressure);
   payload[7] = pressure / 100 % 10; 
   payload[8] = pressure / 10 % 10;
   payload[9] = pressure % 10;
-  
-   
+
+  //9DOF
+  lsm.read();  /* ask it to read in the data */ 
+
+  /* Get a new sensor event */ 
+  sensors_event_t a, m, g, temper;
+
+  lsm.getEvent(&a, &m, &g, &temper); 
+
+  float accel_x = a.acceleration.x;
+  if (accel_x < 0){ 
+    Serial.println("Accel X is negative");
+  }
+  if (accel_x > 0) { 
+    Serial.println("Accel X is positive");
+  }
   
   
   
@@ -162,6 +230,16 @@ void loop() {
   } else {
     // local XBee did not provide a timely TX Status Response -- should not happen
     flashLed(errorLed, 2, 50);
+  }
+
+    for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    servo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+    servo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
   }
 
   delay(1000);
