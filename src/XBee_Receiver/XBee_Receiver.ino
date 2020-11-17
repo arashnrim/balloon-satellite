@@ -52,36 +52,45 @@ void loop() {
         int glb_count = 0;
       
         // Unpacks the payload data of the relative humidity coming from the sender.
-        int firstRH = rx.getData(0);
-        int secondRH = rx.getData(1);
-        int thirdRH = rx.getData(2);
-        float HIH4030_Value = (firstRH * 100) + (secondRH * 10) + thirdRH;
-        float voltage = HIH4030_Value / 1023. * 5.0;
+        float rhValues[3];
+        for (int int_count = 0; glb_count <= 2; int_count++) {
+          rhValues[int_count] = rx.getData(glb_count);
+          glb_count++;
+        }
+        float HIH4030_Value = (rhValues[0] * 100) + (rhValues[1] * 10) + rhValues[2];
+        float voltage = HIH4030_Value / 1023 * 5.0;
         float sensorRH = 161.0 * voltage / 5.0 - 25.8;
         // The temperature of the surroundings. Edit this to fit your surroundings.
-        float temperatureRH = 30;
+        float tempRH = 30;
         // Calculates the true relative humidity percentage based on the temperature.
-        float trueRH = sensorRH / (1.0546 - 0.0026 * temperatureRH);
+        float trueRH = sensorRH / (1.0546 - 0.0026 * tempRH);
         Serial.print("Humidity: ");
         Serial.print(trueRH);
         Serial.println("%");
 
         // Unpacks the payload data of the temperature coming from the sender.
-        int firstTMP = rx.getData(3);
-        int secondTMP = rx.getData(4);
-        float thirdTMP = rx.getData(5);
-        float fourthTMP = rx.getData(6);
-        float temperature = firstTMP * 10 + secondTMP + thirdTMP / 10 + fourthTMP / 100;
-        Serial.print("Temperature: ");
-        Serial.print(temperature);
-        Serial.println("°C");
+        float tempValues[4];
+        for (int int_count = 0; glb_count <= 6; int_count++) {
+          tempValues[int_count] = rx.getData(glb_count);
+          glb_count++;
+        }
+        float temperature = tempValues[0] * 10 + tempValues[1] + tempValues[2] / 10 + tempValues[3] / 100;
+        if (temperature == 0.00) {
+          Serial.println("Warning: Temperature data not available");
+        } else {
+          Serial.print("Temperature: ");
+          Serial.print(temperature);
+          Serial.println("°C");
+        }
 
         // Unpacks the payload data of the pressure coming from the sender.
         // We chose kPa over Pa due to Arduino's 16-bit restriction on integers.
-        int firstPR = rx.getData(7);
-        int secondPR = rx.getData(8);
-        int thirdPR = rx.getData(9);
-        int pressure = firstPR * 100 + secondPR * 10 + thirdPR;
+        float pressureValues[3];
+        for (int int_count = 0; glb_count <= 9; int_count++) {
+          pressureValues[int_count] = rx.getData(glb_count);
+          glb_count++;
+        } 
+        int pressure = pressureValues[0] * 100 + pressureValues[1] * 10 + pressureValues[2];
         Serial.print("Pressure: ");
         Serial.print(pressure);
         Serial.println("kPa");
