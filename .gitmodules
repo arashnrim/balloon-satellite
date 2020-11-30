@@ -1,3 +1,6 @@
 [submodule "balloon-satellite-slides"]
 	path = balloon-satellite-slides
 	url = https://github.com/arashnrim/balloon-satellite-slides
+[submodule "Slides"]
+	path = Slides
+	url = https://github.com/arashnrim/balloon-satellite-slides.git
